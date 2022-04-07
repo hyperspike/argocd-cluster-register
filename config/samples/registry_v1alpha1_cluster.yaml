@@ -1,0 +1,6 @@
+apiVersion: registry.argoproj.io/v1alpha1
+kind: Cluster
+metadata:
+  name: cluster-sample
+spec:
+  # TODO(user): Add fields here
