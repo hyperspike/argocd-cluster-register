@@ -24,7 +24,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	registryv1alpha1 "github.com/dmolik/argocd-cluster-register/api/v1alpha1"
+	capiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	// registryv1alpha1 "github.com/dmolik/argocd-cluster-register/api/v1alpha1"
 )
 
 // ClusterReconciler reconciles a Cluster object
@@ -49,6 +50,13 @@ type ClusterReconciler struct {
 func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
+	cluster := &capiv1beta1.Cluster{}
+
+	err := r.Get(ctx, req.NamespacedName, cluster)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	//	instance.Status
 	// TODO(user): your logic here
 
 	return ctrl.Result{}, nil
@@ -57,6 +65,6 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 // SetupWithManager sets up the controller with the Manager.
 func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&registryv1alpha1.Cluster{}).
+		For(&capiv1beta1.Cluster{}).
 		Complete(r)
 }
