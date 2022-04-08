@@ -69,11 +69,15 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		if err != nil {
 			return ctrl.Result{}, nil
 		}
-		return r.ensureSecret(ctx, k)
+		return r.deleteSecret(ctx, k)
 	}
 	if cluster.Status.Phase != "Deleting" {
 		// get the secret and push it into argocd
-		return ctrl.Result{}, nil
+		k, err := r.getSecret(ctx, req)
+		if err != nil {
+			return ctrl.Result{}, nil
+		}
+		return r.ensureSecret(ctx, k)
 	}
 
 	return ctrl.Result{}, nil
@@ -92,6 +96,26 @@ func (r *ClusterReconciler) getSecret(ctx context.Context, req ctrl.Request) (*c
 		return nil, err
 	}
 	return kubeconfig, nil
+}
+
+func (r *ClusterReconciler) deleteSecret(ctx context.Context, kubeconfig *clientcmdapi.Config) (ctrl.Result, error) {
+	clusterName := kubeconfig.Contexts[kubeconfig.CurrentContext].Cluster
+	secret := corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      clusterName + "-cluster-secret",
+			Namespace: "argocd",
+		},
+	}
+	err := r.Delete(ctx, &secret)
+	if err != nil {
+		return ctrl.Result{}, err
+
+	}
+	return ctrl.Result{}, nil
 }
 
 func (r *ClusterReconciler) ensureSecret(ctx context.Context, kubeconfig *clientcmdapi.Config) (ctrl.Result, error) {
@@ -115,7 +139,7 @@ func (r *ClusterReconciler) ensureSecret(ctx context.Context, kubeconfig *client
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      clusterName + "-secret",
+			Name:      clusterName + "-cluster-secret",
 			Namespace: "argocd",
 			Labels: map[string]string{
 				"app.kubernetes.io/part-of":      "argocd",
