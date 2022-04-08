@@ -23,9 +23,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/json"
 	clientcmd "k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	//"k8s.io/client/kubernetes/config/api"
+	argoappv1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -65,9 +67,13 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	//log.V(0).Info(fmt.Sprintf("%s: %+v\n", cluster.ObjectMeta.Name, cluster.Status))
 	log.V(0).Info(fmt.Sprintf("found cluster, phase=%s, control_plane_ready=%t", cluster.Status.Phase, cluster.Status.ControlPlaneReady)) // , cluster.Status.Conditions))
 	if cluster.Status.Phase == "Deleting" {
-		return r.getSecret(ctx, req)
 		// delete the cluster secret from argocd
 		//return ctrl.Result{}, nil
+		k, err := r.getSecret(ctx, req)
+		if err != nil {
+			return ctrl.Result{}, nil
+		}
+		return r.ensureSecret(ctx, k)
 	}
 	if cluster.Status.Phase != "Deleting" {
 		// get the secret and push it into argocd
@@ -77,24 +83,38 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return ctrl.Result{}, nil
 }
 
-func (r *ClusterReconciler) getSecret(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := log.FromContext(ctx)
+func (r *ClusterReconciler) getSecret(ctx context.Context, req ctrl.Request) (*clientcmdapi.Config, error) {
+	//log := log.FromContext(ctx)
 	secret := corev1.Secret{}
 	secretReq := req.NamespacedName
 	secretReq.Name = secretReq.Name + "-kubeconfig"
 	err := r.Get(ctx, secretReq, &secret)
 	if err != nil {
-		return ctrl.Result{}, err
+		return nil, err
 	}
 	kubeconfig, err := clientcmd.Load(secret.Data["value"])
 	if err != nil {
-		return ctrl.Result{}, err
+		return nil, err
 	}
-	log.V(0).Info(fmt.Sprintf("got secret %+v", kubeconfig))
-	return ctrl.Result{}, nil
+	return kubeconfig, nil
 }
 
-func (r *ClusterReconciler) ensureSecret(ctx context.Context, kubeconfig clientcmdapi.Config) (ctrl.Result, error) {
+func (r *ClusterReconciler) ensureSecret(ctx context.Context, kubeconfig *clientcmdapi.Config) (ctrl.Result, error) {
+	log := log.FromContext(ctx)
+
+	clusterName := kubeconfig.Contexts[kubeconfig.CurrentContext].Cluster
+	authName := kubeconfig.Contexts[kubeconfig.CurrentContext].AuthInfo
+	config := argoappv1.ClusterConfig{
+		TLSClientConfig: argoappv1.TLSClientConfig{
+			CAData:   kubeconfig.Clusters[clusterName].CertificateAuthorityData,
+			CertData: kubeconfig.AuthInfos[authName].ClientCertificateData,
+			KeyData:  kubeconfig.AuthInfos[authName].ClientKeyData,
+		},
+	}
+	configByte, err := json.Marshal(&config)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 
 	secret := corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
@@ -105,13 +125,19 @@ func (r *ClusterReconciler) ensureSecret(ctx context.Context, kubeconfig clientc
 			Name:      "test",
 			Namespace: "argocd",
 			Labels: map[string]string{
+				"app.kubernetes.io/part-of":      "argocd",
 				"argocd.argoproj.io/secret-type": "cluster",
 			},
 		},
-		StringData: map[string]string{},
-		Type:       "Opaque",
+		StringData: map[string]string{
+			"name":   clusterName,
+			"server": kubeconfig.Clusters[clusterName].Server,
+			"config": string(configByte),
+		},
+		Type: "Opaque",
 	}
-	_ = r.Create(ctx, &secret)
+	log.V(0).Info(fmt.Sprintf("%+v", secret))
+	//_ = r.Create(ctx, &secret)
 
 	return ctrl.Result{}, nil
 }
