@@ -152,6 +152,7 @@ func (r *ClusterReconciler) ensureSecret(ctx context.Context, kubeconfig *client
 			Labels: map[string]string{
 				"app.kubernetes.io/part-of":      "argocd",
 				"argocd.argoproj.io/secret-type": "cluster",
+				"cluster.x-k8s.io/cluster-name":  clusterName,
 			},
 		},
 		StringData: map[string]string{
@@ -164,7 +165,8 @@ func (r *ClusterReconciler) ensureSecret(ctx context.Context, kubeconfig *client
 	err = r.Create(ctx, &secret)
 	if err != nil {
 		if errors.IsAlreadyExists(err) {
-			return ctrl.Result{}, nil
+			err = r.Update(ctx, &secret)
+			return ctrl.Result{}, err
 		}
 		return ctrl.Result{}, err
 	}
