@@ -66,6 +66,14 @@ test: manifests generate fmt vet envtest ## Run tests.
 build: generate fmt vet ## Build manager binary.
 	CGO_ENABLED=0 go build -v -ldflags '-s -w' -o bin/manager main.go
 
+.PHONY: build-quick
+build-quick:
+	CGO_ENABLED=0 go build -v -ldflags '-s -w' -o bin/manager main.go
+
+.PHONY: run-local
+run-local: build-quick
+	./bin/manager -kubeconfig ~/.kube/config
+
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./main.go
