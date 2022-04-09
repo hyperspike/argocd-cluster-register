@@ -10,11 +10,6 @@ on:
     tags:
     - '*'
 
-permissions:
-  contents: write
-  issues: write
-  pull-requests: write
-
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
@@ -23,7 +18,7 @@ jobs:
   build-and-push-image:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write # for trivy scan upload
       packages: write
 
     steps:
