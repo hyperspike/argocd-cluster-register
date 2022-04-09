@@ -17,6 +17,7 @@ permissions:
 
 jobs:
   hadolint:
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - uses: hadolint/hadolint-action@v2.1.0
