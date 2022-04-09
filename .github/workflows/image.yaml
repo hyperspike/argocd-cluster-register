@@ -18,8 +18,10 @@ jobs:
   build-and-push-image:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # for trivy scan upload
+      contents: read # for trivy scan upload
       packages: write
+      id-token: write
+      security-events: write
 
     steps:
       - name: Checkout repository
