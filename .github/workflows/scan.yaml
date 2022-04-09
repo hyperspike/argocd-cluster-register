@@ -12,7 +12,7 @@ on:
   #schedule:
   #- cron: '0 0 * * 0'
 
-    permissions:
+permissions:
   contents: read
 
 jobs:
