@@ -36,10 +36,22 @@ spec:
           spec:
             description: GeneratorSpec defines the desired state of Generator
             properties:
-              foo:
-                description: Foo is an example field of Generator. Edit generator_types.go
-                  to remove/update
+              appProjectName:
+                description: AppProjectName is the name of the project to add the
+                  found clusters to, if no Appproject is given, then Clusters will
+                  not be added to a project automatically.
                 type: string
+              appProjectNamespace:
+                default: argocd
+                description: AppProjectNamespace is the namespace to target for the
+                  appproject addition. Defaults to; argocd.
+                type: string
+              filters:
+                additionalProperties:
+                  type: string
+                description: Filters is simple key value map to target Cluster-API
+                  Clusters, by label matching
+                type: object
             type: object
           status:
             description: GeneratorStatus defines the observed state of Generator

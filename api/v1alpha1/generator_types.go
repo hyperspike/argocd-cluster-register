@@ -28,8 +28,16 @@ type GeneratorSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of Generator. Edit generator_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// Filters is simple key value map to target Cluster-API Clusters, by label matching
+	Filters map[string]string `json:"filters,omitempty"`
+
+	// AppProjectName is the name of the project to add the found clusters to, if no Appproject is given, then Clusters
+	// will not be added to a project automatically.
+	AppProjectName string `json:"appProjectName,omitempty"`
+
+	// AppProjectNamespace is the namespace to target for the appproject addition. Defaults to; argocd.
+	// +kubebuilder:default:="argocd"
+	AppProjectNamespace string `json:"appProjectNamespace,omitempty"`
 }
 
 // GeneratorStatus defines the observed state of Generator
