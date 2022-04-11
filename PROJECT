@@ -10,7 +10,7 @@ resources:
   controller: true
   domain: argoproj.io
   group: registry
-  kind: Cluster
+  kind: Generator
   path: github.com/dmolik/argocd-cluster-register/api/v1alpha1
   version: v1alpha1
 version: "3"

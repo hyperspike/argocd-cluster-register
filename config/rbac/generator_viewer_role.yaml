@@ -1,0 +1,20 @@
+# permissions for end users to view generators.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: generator-viewer-role
+rules:
+- apiGroups:
+  - registry.argoproj.io
+  resources:
+  - generators
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - registry.argoproj.io
+  resources:
+  - generators/status
+  verbs:
+  - get

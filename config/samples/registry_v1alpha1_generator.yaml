@@ -1,0 +1,6 @@
+apiVersion: registry.argoproj.io/v1alpha1
+kind: Generator
+metadata:
+  name: generator-sample
+spec:
+  # TODO(user): Add fields here

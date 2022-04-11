@@ -33,8 +33,10 @@ import (
 
 	appsv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	// registryv1alpha1 "github.com/dmolik/argocd-cluster-register/api/v1alpha1"
-	"github.com/dmolik/argocd-cluster-register/controllers"
 	capiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+
+	registryv1alpha1 "github.com/dmolik/argocd-cluster-register/api/v1alpha1"
+	"github.com/dmolik/argocd-cluster-register/controllers"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -49,6 +51,7 @@ func init() {
 	utilruntime.Must(appsv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(capiv1beta1.AddToScheme(scheme))
 	// utilruntime.Must(registryv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(registryv1alpha1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -87,6 +90,13 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Cluster")
+		os.Exit(1)
+	}
+	if err = (&controllers.GeneratorReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Generator")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

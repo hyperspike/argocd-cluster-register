@@ -6,20 +6,20 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: (devel)
   creationTimestamp: null
-  name: clusters.registry.argoproj.io
+  name: generators.registry.argoproj.io
 spec:
   group: registry.argoproj.io
   names:
-    kind: Cluster
-    listKind: ClusterList
-    plural: clusters
-    singular: cluster
+    kind: Generator
+    listKind: GeneratorList
+    plural: generators
+    singular: generator
   scope: Namespaced
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Cluster is the Schema for the clusters API
+        description: Generator is the Schema for the generators API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -34,15 +34,15 @@ spec:
           metadata:
             type: object
           spec:
-            description: ClusterSpec defines the desired state of Cluster
+            description: GeneratorSpec defines the desired state of Generator
             properties:
               foo:
-                description: Foo is an example field of Cluster. Edit cluster_types.go
+                description: Foo is an example field of Generator. Edit generator_types.go
                   to remove/update
                 type: string
             type: object
           status:
-            description: ClusterStatus defines the observed state of Cluster
+            description: GeneratorStatus defines the observed state of Generator
             type: object
         type: object
     served: true
