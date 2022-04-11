@@ -6,9 +6,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: (devel)
   creationTimestamp: null
-  name: generators.registry.argoproj.io
+  name: generators.cluster.argoproj.io
 spec:
-  group: registry.argoproj.io
+  group: cluster.argoproj.io
   names:
     kind: Generator
     listKind: GeneratorList

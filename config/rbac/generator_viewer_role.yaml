@@ -5,7 +5,7 @@ metadata:
   name: generator-viewer-role
 rules:
 - apiGroups:
-  - registry.argoproj.io
+  - cluster.argoproj.io
   resources:
   - generators
   verbs:
@@ -13,7 +13,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - registry.argoproj.io
+  - cluster.argoproj.io
   resources:
   - generators/status
   verbs:

@@ -33,9 +33,9 @@ type GeneratorReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=registry.argoproj.io,resources=generators,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=registry.argoproj.io,resources=generators/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=registry.argoproj.io,resources=generators/finalizers,verbs=update
+//+kubebuilder:rbac:groups=cluster.argoproj.io,resources=generators,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=cluster.argoproj.io,resources=generators/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=cluster.argoproj.io,resources=generators/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.

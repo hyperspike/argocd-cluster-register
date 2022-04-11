@@ -7,33 +7,7 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - registry.argoproj.io
-  resources:
-  - clusters
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - registry.argoproj.io
-  resources:
-  - clusters/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - registry.argoproj.io
-  resources:
-  - clusters/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - registry.argoproj.io
+  - cluster.argoproj.io
   resources:
   - generators
   verbs:
@@ -45,13 +19,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - registry.argoproj.io
+  - cluster.argoproj.io
   resources:
   - generators/finalizers
   verbs:
   - update
 - apiGroups:
-  - registry.argoproj.io
+  - cluster.argoproj.io
   resources:
   - generators/status
   verbs:

@@ -1,4 +1,4 @@
-apiVersion: registry.argoproj.io/v1alpha1
+apiVersion: cluster.argoproj.io/v1alpha1
 kind: Generator
 metadata:
   name: generator-sample
