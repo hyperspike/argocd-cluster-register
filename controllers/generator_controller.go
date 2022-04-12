@@ -68,19 +68,23 @@ func (r *GeneratorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			kcfg, err := r.getKubeConfig(ctx, &cluster)
 			if err != nil {
 				if errors.IsNotFound(err) {
-					return ctrl.Result{}, nil
+					continue
 				}
 				return ctrl.Result{}, err
 			}
-			return r.deleteSecret(ctx, kcfg)
+			if _, err = r.deleteSecret(ctx, kcfg); err != nil {
+				return ctrl.Result{}, err
+			}
 		}
 		if cluster.Status.Phase != "Deleting" {
 			// get the secret and push it into argocd
 			kcfg, err := r.getKubeConfig(ctx, &cluster)
 			if err != nil {
-				return ctrl.Result{}, nil
+				return ctrl.Result{}, err
 			}
-			return r.ensureSecret(ctx, kcfg, &cluster)
+			if _, err = r.ensureSecret(ctx, kcfg, &cluster); err != nil {
+				return ctrl.Result{}, err
+			}
 		}
 	}
 
@@ -90,7 +94,7 @@ func (r *GeneratorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 func (r *GeneratorReconciler) getKubeConfig(ctx context.Context, cluster *capiv1beta1.Cluster) (*clientcmdapi.Config, error) {
 	secret := corev1.Secret{}
 	secretReq := types.NamespacedName{}
-	secretReq.Name = secretReq.Name + "-kubeconfig"
+	secretReq.Name = cluster.ObjectMeta.Name + "-kubeconfig"
 	secretReq.Namespace = cluster.ObjectMeta.Namespace
 	err := r.Get(ctx, secretReq, &secret)
 	if err != nil {
