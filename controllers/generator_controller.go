@@ -65,22 +65,22 @@ func (r *GeneratorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		log.V(0).Info(fmt.Sprintf("found cluster, phase=%s, control_plane_ready=%t, revision=%s, name=%s", cluster.Status.Phase, cluster.Status.ControlPlaneReady, cluster.ResourceVersion, cluster.ObjectMeta.Name)) // , cluster.Status.Conditions))
 		if cluster.Status.Phase == "Deleting" {
 			// delete the cluster secret from argocd
-			k, err := r.getKubeConfig(ctx, &cluster)
+			kcfg, err := r.getKubeConfig(ctx, &cluster)
 			if err != nil {
 				if errors.IsNotFound(err) {
 					return ctrl.Result{}, nil
 				}
 				return ctrl.Result{}, err
 			}
-			return r.deleteSecret(ctx, k)
+			return r.deleteSecret(ctx, kcfg)
 		}
 		if cluster.Status.Phase != "Deleting" {
 			// get the secret and push it into argocd
-			k, err := r.getKubeConfig(ctx, &cluster)
+			kcfg, err := r.getKubeConfig(ctx, &cluster)
 			if err != nil {
 				return ctrl.Result{}, nil
 			}
-			return r.ensureSecret(ctx, k)
+			return r.ensureSecret(ctx, kcfg, &cluster)
 		}
 	}
 
@@ -127,7 +127,7 @@ func (r *GeneratorReconciler) deleteSecret(ctx context.Context, kubeconfig *clie
 	return ctrl.Result{}, nil
 }
 
-func (r *GeneratorReconciler) ensureSecret(ctx context.Context, kubeconfig *clientcmdapi.Config) (ctrl.Result, error) {
+func (r *GeneratorReconciler) ensureSecret(ctx context.Context, kubeconfig *clientcmdapi.Config, cluster *capiv1beta1.Cluster) (ctrl.Result, error) {
 	clusterName := kubeconfig.Contexts[kubeconfig.CurrentContext].Cluster
 	authName := kubeconfig.Contexts[kubeconfig.CurrentContext].AuthInfo
 	config := argoappv1.ClusterConfig{
@@ -154,6 +154,9 @@ func (r *GeneratorReconciler) ensureSecret(ctx context.Context, kubeconfig *clie
 				"app.kubernetes.io/part-of":      "argocd",
 				"argocd.argoproj.io/secret-type": "cluster",
 				"cluster.x-k8s.io/cluster-name":  clusterName,
+			},
+			Annotations: map[string]string{
+				"cluster.x-k8s.io/revision": cluster.ResourceVersion,
 			},
 		},
 		StringData: map[string]string{
