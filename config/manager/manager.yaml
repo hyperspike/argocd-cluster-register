@@ -31,7 +31,7 @@ spec:
         - /manager
         args:
         - --leader-elect
-        image: controller:latest
+        image: ghcr.io/dmolik/argocd-cluster-register:lastest
         name: manager
         securityContext:
           allowPrivilegeEscalation: false
