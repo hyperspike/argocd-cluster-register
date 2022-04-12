@@ -18,13 +18,24 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
+	argoappv1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/json"
+	clientcmd "k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	registryv1alpha1 "github.com/dmolik/argocd-cluster-register/api/v1alpha1"
+	clusterv1alpha1 "github.com/dmolik/argocd-cluster-register/api/v1alpha1"
+
+	capiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // GeneratorReconciler reconciles a Generator object
@@ -36,27 +47,136 @@ type GeneratorReconciler struct {
 //+kubebuilder:rbac:groups=cluster.argoproj.io,resources=generators,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=cluster.argoproj.io,resources=generators/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=cluster.argoproj.io,resources=generators/finalizers,verbs=update
+//+kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status;clusters/finalizers,verbs=get;list;watch
+//+kubebuilder:rbac:namespace=argocd,resources=secrets,verbs=create;update;delete;get
 
-// Reconcile is part of the main kubernetes reconciliation loop which aims to
-// move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the Generator object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
-//
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
 func (r *GeneratorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	log := log.FromContext(ctx)
 
-	// TODO(user): your logic here
+	clusterList := &capiv1beta1.ClusterList{}
 
+	err := r.List(ctx, clusterList, client.MatchingLabels{})
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	for _, cluster := range clusterList.Items {
+		log.V(0).Info(fmt.Sprintf("found cluster, phase=%s, control_plane_ready=%t, revision=%s, name=%s", cluster.Status.Phase, cluster.Status.ControlPlaneReady, cluster.ResourceVersion, cluster.ObjectMeta.Name)) // , cluster.Status.Conditions))
+		if cluster.Status.Phase == "Deleting" {
+			// delete the cluster secret from argocd
+			k, err := r.getKubeConfig(ctx, &cluster)
+			if err != nil {
+				if errors.IsNotFound(err) {
+					return ctrl.Result{}, nil
+				}
+				return ctrl.Result{}, err
+			}
+			return r.deleteSecret(ctx, k)
+		}
+		if cluster.Status.Phase != "Deleting" {
+			// get the secret and push it into argocd
+			k, err := r.getKubeConfig(ctx, &cluster)
+			if err != nil {
+				return ctrl.Result{}, nil
+			}
+			return r.ensureSecret(ctx, k)
+		}
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *GeneratorReconciler) getKubeConfig(ctx context.Context, cluster *capiv1beta1.Cluster) (*clientcmdapi.Config, error) {
+	secret := corev1.Secret{}
+	secretReq := types.NamespacedName{}
+	secretReq.Name = secretReq.Name + "-kubeconfig"
+	secretReq.Namespace = cluster.ObjectMeta.Namespace
+	err := r.Get(ctx, secretReq, &secret)
+	if err != nil {
+		return nil, err
+	}
+	kubeconfig, err := clientcmd.Load(secret.Data["value"])
+	if err != nil {
+		return nil, err
+	}
+	return kubeconfig, nil
+}
+
+func (r *GeneratorReconciler) deleteSecret(ctx context.Context, kubeconfig *clientcmdapi.Config) (ctrl.Result, error) {
+	log := log.FromContext(ctx)
+	clusterName := kubeconfig.Contexts[kubeconfig.CurrentContext].Cluster
+	log.V(0).Info("deleting " + clusterName)
+	secret := corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      clusterName + "-cluster-secret",
+			Namespace: "argocd",
+		},
+	}
+	err := r.Delete(ctx, &secret)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return ctrl.Result{}, nil
+		}
+		return ctrl.Result{}, err
+	}
+	return ctrl.Result{}, nil
+}
+
+func (r *GeneratorReconciler) ensureSecret(ctx context.Context, kubeconfig *clientcmdapi.Config) (ctrl.Result, error) {
+	clusterName := kubeconfig.Contexts[kubeconfig.CurrentContext].Cluster
+	authName := kubeconfig.Contexts[kubeconfig.CurrentContext].AuthInfo
+	config := argoappv1.ClusterConfig{
+		TLSClientConfig: argoappv1.TLSClientConfig{
+			CAData:   kubeconfig.Clusters[clusterName].CertificateAuthorityData,
+			CertData: kubeconfig.AuthInfos[authName].ClientCertificateData,
+			KeyData:  kubeconfig.AuthInfos[authName].ClientKeyData,
+		},
+	}
+	configByte, err := json.Marshal(&config)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	secret := corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      clusterName + "-cluster-secret",
+			Namespace: "argocd",
+			Labels: map[string]string{
+				"app.kubernetes.io/part-of":      "argocd",
+				"argocd.argoproj.io/secret-type": "cluster",
+				"cluster.x-k8s.io/cluster-name":  clusterName,
+			},
+		},
+		StringData: map[string]string{
+			"name":   clusterName,
+			"server": kubeconfig.Clusters[clusterName].Server,
+			"config": string(configByte),
+		},
+		Type: "Opaque",
+	}
+	err = r.Create(ctx, &secret)
+	if err != nil {
+		if errors.IsAlreadyExists(err) {
+			err = r.Update(ctx, &secret)
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, err
+	}
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *GeneratorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&registryv1alpha1.Generator{}).
+		For(&clusterv1alpha1.Generator{}).
 		Complete(r)
 }
