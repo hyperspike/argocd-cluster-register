@@ -55,9 +55,14 @@ type GeneratorReconciler struct {
 func (r *GeneratorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
-	clusterList := &capiv1beta1.ClusterList{}
+	gen := clusterv1alpha1.Generator{}
+	err := r.Get(ctx, req.NamespacedName, &gen)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 
-	err := r.List(ctx, clusterList, client.MatchingLabels{})
+	clusterList := &capiv1beta1.ClusterList{}
+	err = r.List(ctx, clusterList, client.MatchingLabels{})
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -83,6 +88,9 @@ func (r *GeneratorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 				return ctrl.Result{}, err
 			}
 			if _, err = r.ensureSecret(ctx, kcfg, &cluster); err != nil {
+				return ctrl.Result{}, err
+			}
+			if err = r.addToProject(ctx, kcfg, &gen); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
@@ -179,6 +187,25 @@ func (r *GeneratorReconciler) ensureSecret(ctx context.Context, kubeconfig *clie
 		return ctrl.Result{}, err
 	}
 	return ctrl.Result{}, nil
+}
+func (r *GeneratorReconciler) addToProject(ctx context.Context, kubeconfig *clientcmdapi.Config, gen *clusterv1alpha1.Generator) error {
+	clusterName := kubeconfig.Contexts[kubeconfig.CurrentContext].Cluster
+	if gen.Spec.AppProjectName == "" {
+		return nil
+	}
+	project := argoappv1.AppProject{}
+	projectReq := types.NamespacedName{
+		Name:      gen.ObjectMeta.Name,
+		Namespace: gen.ObjectMeta.Namespace,
+	}
+	err := r.Get(ctx, projectReq, &project)
+	if err != nil {
+		return err
+	}
+	project.Spec.Destinations = append(project.Spec.Destinations, argoappv1.ApplicationDestination{
+		Name: clusterName,
+	})
+	return r.Update(ctx, &project)
 }
 
 // SetupWithManager sets up the controller with the Manager.
