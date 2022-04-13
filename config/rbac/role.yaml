@@ -6,6 +6,15 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
+  - argoproj.io
+  resources:
+  - appprojects
+  verbs:
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
   - cluster.argoproj.io
   resources:
   - generators
