@@ -82,6 +82,9 @@ func (r *GeneratorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			if _, err = r.deleteSecret(ctx, kcfg); err != nil {
 				return ctrl.Result{}, err
 			}
+			if err = r.removeFromProject(ctx, kcfg, &gen); err != nil {
+				return ctrl.Result{}, err
+			}
 		}
 		if cluster.Status.Phase != "Deleting" {
 			// get the secret and push it into argocd
@@ -193,6 +196,30 @@ func (r *GeneratorReconciler) ensureSecret(ctx context.Context, kubeconfig *clie
 	}
 	return ctrl.Result{}, nil
 }
+
+func (r *GeneratorReconciler) removeFromProject(ctx context.Context, kubeconfig *clientcmdapi.Config, gen *clusterv1alpha1.Generator) error {
+	clusterName := kubeconfig.Contexts[kubeconfig.CurrentContext].Cluster
+	if gen.Spec.AppProjectName == "" {
+		return nil
+	}
+	project := argoappv1.AppProject{}
+	projectReq := types.NamespacedName{
+		Name:      gen.ObjectMeta.Name,
+		Namespace: gen.ObjectMeta.Namespace,
+	}
+	err := r.Get(ctx, projectReq, &project)
+	if err != nil {
+		return err
+	}
+	for idx, dest := range project.Spec.Destinations {
+		if dest.Name == clusterName {
+			project.Spec.Destinations = append(project.Spec.Destinations[:idx], project.Spec.Destinations[idx+1:]...)
+			break
+		}
+	}
+	return r.Update(ctx, &project)
+}
+
 func (r *GeneratorReconciler) addToProject(ctx context.Context, kubeconfig *clientcmdapi.Config, gen *clusterv1alpha1.Generator) error {
 	clusterName := kubeconfig.Contexts[kubeconfig.CurrentContext].Cluster
 	if gen.Spec.AppProjectName == "" {
