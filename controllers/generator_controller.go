@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"time"
 
 	argoappv1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -95,8 +96,11 @@ func (r *GeneratorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			}
 		}
 	}
-
-	return ctrl.Result{}, nil
+	oneMinute, err := time.ParseDuration("1m")
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	return ctrl.Result{RequeueAfter: oneMinute}, nil
 }
 
 func (r *GeneratorReconciler) getKubeConfig(ctx context.Context, cluster *capiv1beta1.Cluster) (*clientcmdapi.Config, error) {
