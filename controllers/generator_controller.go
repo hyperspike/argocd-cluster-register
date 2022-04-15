@@ -31,8 +31,13 @@ import (
 	clientcmd "k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	clusterv1alpha1 "github.com/dmolik/argocd-cluster-register/api/v1alpha1"
 
@@ -244,5 +249,30 @@ func (r *GeneratorReconciler) addToProject(ctx context.Context, kubeconfig *clie
 func (r *GeneratorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1alpha1.Generator{}).
+		Watches(
+			&source.Kind{Type: &capiv1beta1.Cluster{}},
+			handler.EnqueueRequestsFromMapFunc(r.findObjectsForCluster),
+			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
+		).
 		Complete(r)
+}
+
+func (r *GeneratorReconciler) findObjectsForCluster(cluster client.Object) []reconcile.Request {
+	foundClusters := &capiv1beta1.ClusterList{}
+	listOps := &client.MatchingLabels{}
+	err := r.List(context.TODO(), foundClusters, listOps)
+	if err != nil {
+		return []reconcile.Request{}
+	}
+
+	requests := make([]reconcile.Request, len(foundClusters.Items))
+	for i, item := range foundClusters.Items {
+		requests[i] = reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      item.GetName(),
+				Namespace: item.GetNamespace(),
+			},
+		}
+	}
+	return requests
 }
