@@ -56,6 +56,7 @@ type GeneratorReconciler struct {
 //+kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status;clusters/finalizers,verbs=get;list;watch
 //+kubebuilder:rbac:namespace=argocd,resources=secrets,verbs=create;update;delete;get
 //+kubebuilder:rbac:groups=argoproj.io,resources=appprojects,verbs=update;list;watch;get
+//+kubebuilder:rbac:resources=secrets,verbs=get,watch,list
 
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
@@ -161,6 +162,7 @@ func (r *GeneratorReconciler) ensureSecret(ctx context.Context, kubeconfig *clie
 			CertData: kubeconfig.AuthInfos[authName].ClientCertificateData,
 			KeyData:  kubeconfig.AuthInfos[authName].ClientKeyData,
 		},
+		BearerToken: kubeconfig.AuthInfos[authName].Token,
 	}
 	configByte, err := json.Marshal(&config)
 	if err != nil {
