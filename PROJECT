@@ -4,13 +4,4 @@ layout:
 projectName: argocd-cluster-register
 repo: github.com/dmolik/argocd-cluster-register
 resources:
-- api:
-    crdVersion: v1
-    namespaced: true
-  controller: true
-  domain: argoproj.io
-  group: cluster
-  kind: Generator
-  path: github.com/dmolik/argocd-cluster-register/api/v1alpha1
-  version: v1alpha1
 version: "3"

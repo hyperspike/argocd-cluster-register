@@ -31,21 +31,14 @@ import (
 	clientcmd "k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	clusterv1alpha1 "github.com/dmolik/argocd-cluster-register/api/v1alpha1"
 
 	capiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-// GeneratorReconciler reconciles a Generator object
-type GeneratorReconciler struct {
+// ClusterReconciler reconciles a Cluster object
+type ClusterReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 }
@@ -60,52 +53,47 @@ type GeneratorReconciler struct {
 
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
-func (r *GeneratorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
-	gen := clusterv1alpha1.Generator{}
-	err := r.Get(ctx, req.NamespacedName, &gen)
+	cluster := capiv1beta1.Cluster{}
+	err := r.Get(ctx, req.NamespacedName, &cluster)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	clusterList := &capiv1beta1.ClusterList{}
-	err = r.List(ctx, clusterList, client.MatchingLabels{})
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	for _, cluster := range clusterList.Items {
-		log.V(0).Info(fmt.Sprintf("found cluster, phase=%s, control_plane_ready=%t, revision=%s, name=%s", cluster.Status.Phase, cluster.Status.ControlPlaneReady, cluster.ResourceVersion, cluster.ObjectMeta.Name)) // , cluster.Status.Conditions))
-		if cluster.Status.Phase == "Deleting" {
-			// delete the cluster secret from argocd
-			kcfg, err := r.getKubeConfig(ctx, &cluster)
-			if err != nil {
-				if errors.IsNotFound(err) {
-					continue
-				}
-				return ctrl.Result{}, err
+	log.V(0).Info(fmt.Sprintf("found cluster, phase=%s, control_plane_ready=%t", cluster.Status.Phase, cluster.Status.ControlPlaneReady)) // , cluster.Status.Conditions))
+	if cluster.Status.Phase == "Deleting" {
+		// delete the cluster secret from argocd
+		kcfg, err := r.getKubeConfig(ctx, req)
+		if err != nil {
+			if errors.IsNotFound(err) {
+				return ctrl.Result{}, nil
 			}
-			if _, err = r.deleteSecret(ctx, kcfg); err != nil {
-				return ctrl.Result{}, err
-			}
-			if err = r.removeFromProject(ctx, kcfg, &gen); err != nil {
-				return ctrl.Result{}, err
-			}
+			return ctrl.Result{}, err
 		}
-		if cluster.Status.Phase != "Deleting" {
-			// get the secret and push it into argocd
-			kcfg, err := r.getKubeConfig(ctx, &cluster)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-			if _, err = r.ensureSecret(ctx, kcfg, &cluster); err != nil {
-				return ctrl.Result{}, err
-			}
-			if err = r.addToProject(ctx, kcfg, &gen); err != nil {
-				return ctrl.Result{}, err
-			}
+		if _, err = r.deleteSecret(ctx, kcfg); err != nil {
+			return ctrl.Result{}, err
+		}
+		if err = r.removeFromProject(ctx, kcfg); err != nil {
+			return ctrl.Result{}, err
+		}
+
+	}
+	if cluster.Status.Phase != "Deleting" {
+		// get the secret and push it into argocd
+		kcfg, err := r.getKubeConfig(ctx, req)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		if _, err = r.ensureSecret(ctx, kcfg); err != nil {
+			return ctrl.Result{}, err
+		}
+		if err = r.addToProject(ctx, kcfg); err != nil {
+			return ctrl.Result{}, err
 		}
 	}
+
 	oneMinute, err := time.ParseDuration("1m")
 	if err != nil {
 		return ctrl.Result{}, err
@@ -113,11 +101,10 @@ func (r *GeneratorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	return ctrl.Result{RequeueAfter: oneMinute}, nil
 }
 
-func (r *GeneratorReconciler) getKubeConfig(ctx context.Context, cluster *capiv1beta1.Cluster) (*clientcmdapi.Config, error) {
+func (r *ClusterReconciler) getKubeConfig(ctx context.Context, req ctrl.Request) (*clientcmdapi.Config, error) {
 	secret := corev1.Secret{}
-	secretReq := types.NamespacedName{}
-	secretReq.Name = cluster.ObjectMeta.Name + "-kubeconfig"
-	secretReq.Namespace = cluster.ObjectMeta.Namespace
+	secretReq := req.NamespacedName
+	secretReq.Name = secretReq.Name + "-kubeconfig"
 	err := r.Get(ctx, secretReq, &secret)
 	if err != nil {
 		return nil, err
@@ -129,7 +116,7 @@ func (r *GeneratorReconciler) getKubeConfig(ctx context.Context, cluster *capiv1
 	return kubeconfig, nil
 }
 
-func (r *GeneratorReconciler) deleteSecret(ctx context.Context, kubeconfig *clientcmdapi.Config) (ctrl.Result, error) {
+func (r *ClusterReconciler) deleteSecret(ctx context.Context, kubeconfig *clientcmdapi.Config) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 	clusterName := kubeconfig.Contexts[kubeconfig.CurrentContext].Cluster
 	log.V(0).Info("deleting " + clusterName)
@@ -153,7 +140,7 @@ func (r *GeneratorReconciler) deleteSecret(ctx context.Context, kubeconfig *clie
 	return ctrl.Result{}, nil
 }
 
-func (r *GeneratorReconciler) ensureSecret(ctx context.Context, kubeconfig *clientcmdapi.Config, cluster *capiv1beta1.Cluster) (ctrl.Result, error) {
+func (r *ClusterReconciler) ensureSecret(ctx context.Context, kubeconfig *clientcmdapi.Config) (ctrl.Result, error) {
 	clusterName := kubeconfig.Contexts[kubeconfig.CurrentContext].Cluster
 	authName := kubeconfig.Contexts[kubeconfig.CurrentContext].AuthInfo
 	config := argoappv1.ClusterConfig{
@@ -162,7 +149,6 @@ func (r *GeneratorReconciler) ensureSecret(ctx context.Context, kubeconfig *clie
 			CertData: kubeconfig.AuthInfos[authName].ClientCertificateData,
 			KeyData:  kubeconfig.AuthInfos[authName].ClientKeyData,
 		},
-		BearerToken: kubeconfig.AuthInfos[authName].Token,
 	}
 	configByte, err := json.Marshal(&config)
 	if err != nil {
@@ -181,9 +167,6 @@ func (r *GeneratorReconciler) ensureSecret(ctx context.Context, kubeconfig *clie
 				"app.kubernetes.io/part-of":      "argocd",
 				"argocd.argoproj.io/secret-type": "cluster",
 				"cluster.x-k8s.io/cluster-name":  clusterName,
-			},
-			Annotations: map[string]string{
-				"cluster.x-k8s.io/revision": cluster.ResourceVersion,
 			},
 		},
 		StringData: map[string]string{
@@ -204,15 +187,13 @@ func (r *GeneratorReconciler) ensureSecret(ctx context.Context, kubeconfig *clie
 	return ctrl.Result{}, nil
 }
 
-func (r *GeneratorReconciler) removeFromProject(ctx context.Context, kubeconfig *clientcmdapi.Config, gen *clusterv1alpha1.Generator) error {
+func (r *ClusterReconciler) removeFromProject(ctx context.Context, kubeconfig *clientcmdapi.Config) error {
 	clusterName := kubeconfig.Contexts[kubeconfig.CurrentContext].Cluster
-	if gen.Spec.AppProjectName == "" {
-		return nil
-	}
+
 	project := argoappv1.AppProject{}
 	projectReq := types.NamespacedName{
-		Name:      gen.ObjectMeta.Name,
-		Namespace: gen.ObjectMeta.Namespace,
+		Name:      "replace-me",
+		Namespace: "argocd",
 	}
 	err := r.Get(ctx, projectReq, &project)
 	if err != nil {
@@ -227,15 +208,12 @@ func (r *GeneratorReconciler) removeFromProject(ctx context.Context, kubeconfig 
 	return r.Update(ctx, &project)
 }
 
-func (r *GeneratorReconciler) addToProject(ctx context.Context, kubeconfig *clientcmdapi.Config, gen *clusterv1alpha1.Generator) error {
+func (r *ClusterReconciler) addToProject(ctx context.Context, kubeconfig *clientcmdapi.Config) error {
 	clusterName := kubeconfig.Contexts[kubeconfig.CurrentContext].Cluster
-	if gen.Spec.AppProjectName == "" {
-		return nil
-	}
 	project := argoappv1.AppProject{}
 	projectReq := types.NamespacedName{
-		Name:      gen.ObjectMeta.Name,
-		Namespace: gen.ObjectMeta.Namespace,
+		Name:      "replace-me",
+		Namespace: "argocd",
 	}
 	err := r.Get(ctx, projectReq, &project)
 	if err != nil {
@@ -248,33 +226,8 @@ func (r *GeneratorReconciler) addToProject(ctx context.Context, kubeconfig *clie
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *GeneratorReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&clusterv1alpha1.Generator{}).
-		Watches(
-			&source.Kind{Type: &capiv1beta1.Cluster{}},
-			handler.EnqueueRequestsFromMapFunc(r.findObjectsForCluster),
-			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
-		).
+		For(&capiv1beta1.Cluster{}).
 		Complete(r)
-}
-
-func (r *GeneratorReconciler) findObjectsForCluster(cluster client.Object) []reconcile.Request {
-	foundClusters := &capiv1beta1.ClusterList{}
-	listOps := &client.MatchingLabels{}
-	err := r.List(context.TODO(), foundClusters, listOps)
-	if err != nil {
-		return []reconcile.Request{}
-	}
-
-	requests := make([]reconcile.Request, len(foundClusters.Items))
-	for i, item := range foundClusters.Items {
-		requests[i] = reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Name:      item.GetName(),
-				Namespace: item.GetNamespace(),
-			},
-		}
-	}
-	return requests
 }
