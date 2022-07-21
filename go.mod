@@ -3,7 +3,7 @@ module github.com/dmolik/argocd-cluster-register
 go 1.18
 
 require (
-	github.com/argoproj/argo-cd/v2 v2.4.6
+	github.com/argoproj/argo-cd/v2 v2.4.7
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.17.0
 	k8s.io/api v0.23.9
