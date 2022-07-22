@@ -34,6 +34,7 @@ import (
 	appsv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	capiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
+	"github.com/dmolik/argocd-cluster-register/conf"
 	"github.com/dmolik/argocd-cluster-register/controllers"
 	//+kubebuilder:scaffold:imports
 )
@@ -66,8 +67,13 @@ func main() {
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+	c, err := conf.ParseConfig()
+	if err != nil {
+		setupLog.Error(err, "unable to parse configs")
+		os.Exit(1)
+	}
 
+	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
@@ -84,6 +90,7 @@ func main() {
 	if err = (&controllers.ClusterReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
+		Config: c,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Cluster")
 		os.Exit(1)

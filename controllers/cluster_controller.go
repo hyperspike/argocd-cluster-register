@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	argoappv1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
@@ -34,6 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
+	"github.com/dmolik/argocd-cluster-register/conf"
 	capiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -41,6 +43,7 @@ import (
 type ClusterReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+	Config *conf.Config
 }
 
 //+kubebuilder:rbac:groups=cluster.argoproj.io,resources=generators,verbs=get;list;watch;create;update;patch;delete
@@ -143,12 +146,19 @@ func (r *ClusterReconciler) deleteSecret(ctx context.Context, kubeconfig *client
 func (r *ClusterReconciler) ensureSecret(ctx context.Context, kubeconfig *clientcmdapi.Config) (ctrl.Result, error) {
 	clusterName := kubeconfig.Contexts[kubeconfig.CurrentContext].Cluster
 	authName := kubeconfig.Contexts[kubeconfig.CurrentContext].AuthInfo
+	server := kubeconfig.Clusters[clusterName].Server
 	config := argoappv1.ClusterConfig{
 		TLSClientConfig: argoappv1.TLSClientConfig{
 			CAData:   kubeconfig.Clusters[clusterName].CertificateAuthorityData,
 			CertData: kubeconfig.AuthInfos[authName].ClientCertificateData,
 			KeyData:  kubeconfig.AuthInfos[authName].ClientKeyData,
 		},
+	}
+	if strings.Contains(server, "eks") {
+		config.AWSAuthConfig = &argoappv1.AWSAuthConfig{
+			ClusterName: clusterName,
+			RoleARN:     r.Config.RoleARN,
+		}
 	}
 	configByte, err := json.Marshal(&config)
 	if err != nil {
@@ -171,7 +181,7 @@ func (r *ClusterReconciler) ensureSecret(ctx context.Context, kubeconfig *client
 		},
 		StringData: map[string]string{
 			"name":   clusterName,
-			"server": kubeconfig.Clusters[clusterName].Server,
+			"server": server,
 			"config": string(configByte),
 		},
 		Type: "Opaque",
@@ -190,39 +200,51 @@ func (r *ClusterReconciler) ensureSecret(ctx context.Context, kubeconfig *client
 func (r *ClusterReconciler) removeFromProject(ctx context.Context, kubeconfig *clientcmdapi.Config) error {
 	clusterName := kubeconfig.Contexts[kubeconfig.CurrentContext].Cluster
 
-	project := argoappv1.AppProject{}
-	projectReq := types.NamespacedName{
-		Name:      "replace-me",
-		Namespace: "argocd",
-	}
-	err := r.Get(ctx, projectReq, &project)
-	if err != nil {
-		return err
-	}
-	for idx, dest := range project.Spec.Destinations {
-		if dest.Name == clusterName {
-			project.Spec.Destinations = append(project.Spec.Destinations[:idx], project.Spec.Destinations[idx+1:]...)
-			break
+	for _, proj := range r.Config.Projects {
+		project := argoappv1.AppProject{}
+		projectReq := types.NamespacedName{
+			Name:      proj,
+			Namespace: "argocd",
+		}
+		err := r.Get(ctx, projectReq, &project)
+		if err != nil {
+			return err
+		}
+		for idx, dest := range project.Spec.Destinations {
+			if dest.Name == clusterName {
+				project.Spec.Destinations = append(project.Spec.Destinations[:idx], project.Spec.Destinations[idx+1:]...)
+				break
+			}
+		}
+		err = r.Update(ctx, &project)
+		if err != nil {
+			return err
 		}
 	}
-	return r.Update(ctx, &project)
+	return nil
 }
 
 func (r *ClusterReconciler) addToProject(ctx context.Context, kubeconfig *clientcmdapi.Config) error {
 	clusterName := kubeconfig.Contexts[kubeconfig.CurrentContext].Cluster
-	project := argoappv1.AppProject{}
-	projectReq := types.NamespacedName{
-		Name:      "replace-me",
-		Namespace: "argocd",
+	for _, proj := range r.Config.Projects {
+		project := argoappv1.AppProject{}
+		projectReq := types.NamespacedName{
+			Name:      proj,
+			Namespace: "argocd",
+		}
+		err := r.Get(ctx, projectReq, &project)
+		if err != nil {
+			return err
+		}
+		project.Spec.Destinations = append(project.Spec.Destinations, argoappv1.ApplicationDestination{
+			Name: clusterName,
+		})
+		err = r.Update(ctx, &project)
+		if err != nil {
+			return err
+		}
 	}
-	err := r.Get(ctx, projectReq, &project)
-	if err != nil {
-		return err
-	}
-	project.Spec.Destinations = append(project.Spec.Destinations, argoappv1.ApplicationDestination{
-		Name: clusterName,
-	})
-	return r.Update(ctx, &project)
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
