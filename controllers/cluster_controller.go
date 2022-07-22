@@ -199,6 +199,7 @@ func (r *ClusterReconciler) ensureSecret(ctx context.Context, kubeconfig *client
 
 func (r *ClusterReconciler) removeFromProject(ctx context.Context, kubeconfig *clientcmdapi.Config) error {
 	clusterName := kubeconfig.Contexts[kubeconfig.CurrentContext].Cluster
+	server := kubeconfig.Clusters[clusterName].Server
 
 	for _, proj := range r.Config.Projects {
 		project := argoappv1.AppProject{}
@@ -215,6 +216,10 @@ func (r *ClusterReconciler) removeFromProject(ctx context.Context, kubeconfig *c
 				project.Spec.Destinations = append(project.Spec.Destinations[:idx], project.Spec.Destinations[idx+1:]...)
 				break
 			}
+			if dest.Server == server {
+				project.Spec.Destinations = append(project.Spec.Destinations[:idx], project.Spec.Destinations[idx+1:]...)
+				break
+			}
 		}
 		err = r.Update(ctx, &project)
 		if err != nil {
@@ -226,6 +231,7 @@ func (r *ClusterReconciler) removeFromProject(ctx context.Context, kubeconfig *c
 
 func (r *ClusterReconciler) addToProject(ctx context.Context, kubeconfig *clientcmdapi.Config) error {
 	clusterName := kubeconfig.Contexts[kubeconfig.CurrentContext].Cluster
+	server := kubeconfig.Clusters[clusterName].Server
 	for _, proj := range r.Config.Projects {
 		project := argoappv1.AppProject{}
 		projectReq := types.NamespacedName{
@@ -236,8 +242,17 @@ func (r *ClusterReconciler) addToProject(ctx context.Context, kubeconfig *client
 		if err != nil {
 			return err
 		}
+		for _, dest := range project.Spec.Destinations {
+			if dest.Name == clusterName {
+				return nil
+			}
+			if dest.Server == server {
+				return nil
+			}
+		}
 		project.Spec.Destinations = append(project.Spec.Destinations, argoappv1.ApplicationDestination{
-			Name: clusterName,
+			Name:   clusterName,
+			Server: server,
 		})
 		err = r.Update(ctx, &project)
 		if err != nil {
