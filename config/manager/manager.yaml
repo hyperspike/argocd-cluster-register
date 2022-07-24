@@ -32,6 +32,19 @@ spec:
         args:
         - --leader-elect
         image: ghcr.io/dmolik/argocd-cluster-register:lastest
+        env:
+        - name: ROLE_ARN
+          valueFrom:
+            configMapKeyRef:
+              name: argocd-cluster-register
+              key: roleARN
+              optional: true
+        - name: PROJECT
+          valueFrom:
+            configMapKeyRef:
+              name: argocd-cluster-register
+              key: project
+              optional: true
         name: manager
         securityContext:
           allowPrivilegeEscalation: false

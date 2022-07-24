@@ -9,3 +9,12 @@ webhook:
 leaderElection:
   leaderElect: true
   resourceName: 62e6d454.argoproj.io
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cluster-register
+data:
+  roleARN: <AWS IAM Role>
+  project: <Comma Seperated list of argo projects>
+

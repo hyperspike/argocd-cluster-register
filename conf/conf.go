@@ -6,7 +6,7 @@ import (
 )
 
 type Config struct {
-	RoleARN  string
+	RoleARN  string `envconfig:"ROLE_ARN"`
 	Project  string
 	Projects []string
 }
