@@ -33,6 +33,8 @@ all: build
 # More info on the awk command:
 # http://linuxcommand.org/lc3_adv_awk.php
 
+SRC := $(shell find . -name \*.go -not \( -name \*_test.go -prune \))
+
 .PHONY: help
 help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
@@ -64,11 +66,10 @@ test: generate fmt vet envtest ## Run tests.
 ##@ Build
 
 .PHONY: build
-build: generate fmt vet ## Build manager binary.
+build: generate fmt vet $(SRC) ## Build manager binary.
 	CGO_ENABLED=0 go build -v -ldflags '-s -w' -o bin/manager main.go
 
-.PHONY: build-quick
-build-quick:
+build-quick: $(SRC)
 	CGO_ENABLED=0 go build -v -ldflags '-s -w' -o bin/manager main.go
 
 .PHONY: run-local
