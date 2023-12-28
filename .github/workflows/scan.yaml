@@ -34,7 +34,7 @@ jobs:
         # we let the report trigger content trigger a failure using the GitHub Security features.
         args: '-no-fail -fmt sarif -out results.sarif ./...'
     - name: Upload SARIF file
-      uses: github/codeql-action/upload-sarif@v1
+      uses: github/codeql-action/upload-sarif@v2
       with:
         # Path to SARIF file relative to the root of the repository
         sarif_file: results.sarif
@@ -45,10 +45,10 @@ jobs:
     - uses: actions/setup-go@v2
     - uses: actions/checkout@v4
     - name: golangci-lint
-      uses: golangci/golangci-lint-action@v2
+      uses: golangci/golangci-lint-action@v3
       with:
         # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
-        version: v1.45
+        version: latest
 
         # Optional: working directory, useful for monorepos
         # working-directory: somedir
