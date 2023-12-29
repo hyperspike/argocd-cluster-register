@@ -91,16 +91,16 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-		if _, err = r.ensureSecret(ctx, kcfg); err != nil {
+		if _, err = r.ensureSecret(ctx, kcfg, cluster); err != nil {
 			return ctrl.Result{}, err
 		}
 		if err = r.addToProject(ctx, kcfg); err != nil {
 			return ctrl.Result{}, err
 		}
-		if cluster.Status.Phase != "Deleting" {
-			if _, err := r.createCNI(ctx, req, cluster); err != nil {
-				return ctrl.Result{}, err
-			}
+	}
+	if cluster.Status.Phase != "Deleting" && cluster.Status.ControlPlaneReady {
+		if _, err := r.ensureCNI(ctx, req, cluster); err != nil {
+			return ctrl.Result{}, err
 		}
 	}
 
@@ -111,7 +111,7 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return ctrl.Result{RequeueAfter: oneMinute}, nil
 }
 
-func (r *ClusterReconciler) createCNI(ctx context.Context, req ctrl.Request, cluster capiv1.Cluster) (ctrl.Result, error) {
+func (r *ClusterReconciler) ensureCNI(ctx context.Context, req ctrl.Request, cluster capiv1.Cluster) (ctrl.Result, error) {
 
 	resourceSet := &addonsv1.ClusterResourceSet{
 		TypeMeta: metav1.TypeMeta{
@@ -146,6 +146,10 @@ func (r *ClusterReconciler) createCNI(ctx context.Context, req ctrl.Request, clu
 		},
 	}
 	if err := r.Create(ctx, resourceSet); err != nil {
+		if errors.IsAlreadyExists(err) {
+			err = r.Update(ctx, resourceSet)
+			return ctrl.Result{}, err
+		}
 		return ctrl.Result{}, err
 	}
 
@@ -179,6 +183,10 @@ func (r *ClusterReconciler) createCNI(ctx context.Context, req ctrl.Request, clu
 		},
 	}
 	if err := r.Create(ctx, cm); err != nil {
+		if errors.IsAlreadyExists(err) {
+			err = r.Update(ctx, cm)
+			return ctrl.Result{}, err
+		}
 		return ctrl.Result{}, err
 	}
 
@@ -228,7 +236,7 @@ func (r *ClusterReconciler) deleteSecret(ctx context.Context, kubeconfig *client
 	return ctrl.Result{}, nil
 }
 
-func (r *ClusterReconciler) ensureSecret(ctx context.Context, kubeconfig *clientcmdapi.Config) (ctrl.Result, error) {
+func (r *ClusterReconciler) ensureSecret(ctx context.Context, kubeconfig *clientcmdapi.Config, cluster capiv1.Cluster) (ctrl.Result, error) {
 	clusterName := kubeconfig.Contexts[kubeconfig.CurrentContext].Cluster
 	authName := kubeconfig.Contexts[kubeconfig.CurrentContext].AuthInfo
 	server := kubeconfig.Clusters[clusterName].Server
@@ -262,6 +270,14 @@ func (r *ClusterReconciler) ensureSecret(ctx context.Context, kubeconfig *client
 				"app.kubernetes.io/part-of":      "argocd",
 				"argocd.argoproj.io/secret-type": "cluster",
 				"cluster.x-k8s.io/cluster-name":  clusterName,
+			},
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: cluster.APIVersion,
+					Kind:       cluster.Kind,
+					Name:       cluster.Name,
+					UID:        cluster.UID,
+				},
 			},
 		},
 		StringData: map[string]string{
