@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
+	"github.com/dmolik/argocd-cluster-register/cni/cilium"
 	"github.com/dmolik/argocd-cluster-register/conf"
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
@@ -95,6 +96,11 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 		if err = r.addToProject(ctx, kcfg); err != nil {
 			return ctrl.Result{}, err
+		}
+		if cluster.Status.Phase != "Deleting" {
+			if _, err := r.createCNI(ctx, req, cluster); err != nil {
+				return ctrl.Result{}, err
+			}
 		}
 	}
 
@@ -180,8 +186,7 @@ func (r *ClusterReconciler) createCNI(ctx context.Context, req ctrl.Request, clu
 }
 
 func templateClusterCNI(cluster capiv1.Cluster) (string, error) {
-
-	return "", nil
+	return cilium.Fetch(cluster.Spec.ControlPlaneEndpoint.Host, cluster.Spec.ControlPlaneEndpoint.Port)
 }
 
 func (r *ClusterReconciler) getKubeConfig(ctx context.Context, req ctrl.Request) (*clientcmdapi.Config, error) {
