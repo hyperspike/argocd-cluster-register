@@ -121,6 +121,18 @@ KUSTOMIZE = $(shell pwd)/bin/kustomize
 kustomize: ## Download kustomize locally if necessary.
 	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v3@v3.8.7)
 
+
+CURL := $(shell which curl)
+GREP := $(shell which grep)
+README_TMP := readme.html
+OWNER := dmolik
+REPO := argocd-cluster-register
+
+.PHONY: purge
+purge:
+	$(shell $(CURL) -s https://github.com/$(OWNER)/$(REPO)/blob/main/README.md > $(README_TMP))
+	$(shell $(GREP) -Eo '<img src=\\"[^"]+\\"' $(README_TMP) | $(GREP) camo | $(GREP) -Eo 'https[^"\\]+' | xargs -I {} $(CURL) -w "\n" -s -X PURGE {}; echo complete)
+
 ENVTEST = $(shell pwd)/bin/setup-envtest
 .PHONY: envtest
 envtest: ## Download envtest-setup locally if necessary.
