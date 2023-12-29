@@ -36,7 +36,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/dmolik/argocd-cluster-register/conf"
-	capiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 )
 
 // ClusterReconciler reconciles a Cluster object
@@ -59,7 +60,7 @@ type ClusterReconciler struct {
 func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
-	cluster := capiv1beta1.Cluster{}
+	cluster := capiv1.Cluster{}
 	err := r.Get(ctx, req.NamespacedName, &cluster)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -102,6 +103,85 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 	return ctrl.Result{RequeueAfter: oneMinute}, nil
+}
+
+func (r *ClusterReconciler) createCNI(ctx context.Context, req ctrl.Request, cluster capiv1.Cluster) (ctrl.Result, error) {
+
+	resourceSet := &addonsv1.ClusterResourceSet{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ClusterResourceSet",
+			APIVersion: "addons.cluster.x-k8s.io/v1beta1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      req.Name + "-cni",
+			Namespace: req.Namespace,
+			Labels: map[string]string{
+				"cluster.x-k8s.io/cluster-name": req.Name,
+			},
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: cluster.APIVersion,
+					Kind:       cluster.Kind,
+					Name:       cluster.Name,
+					UID:        cluster.UID,
+				},
+			},
+		},
+		Spec: addonsv1.ClusterResourceSetSpec{
+			ClusterSelector: metav1.LabelSelector{
+				MatchLabels: cluster.Labels,
+			},
+			Resources: []addonsv1.ResourceRef{
+				{
+					Name: req.Name + "-cni",
+					Kind: "ConfigMap",
+				},
+			},
+		},
+	}
+	if err := r.Create(ctx, resourceSet); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	cni, err := templateClusterCNI(cluster)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	cm := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      req.Name + "-cni",
+			Namespace: req.Namespace,
+			Labels: map[string]string{
+				"cluster.x-k8s.io/cluster-name": req.Name,
+			},
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: cluster.APIVersion,
+					Kind:       cluster.Kind,
+					Name:       cluster.Name,
+					UID:        cluster.UID,
+				},
+			},
+		},
+		Data: map[string]string{
+			"cni.yaml": cni,
+		},
+	}
+	if err := r.Create(ctx, cm); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func templateClusterCNI(cluster capiv1.Cluster) (string, error) {
+
+	return "", nil
 }
 
 func (r *ClusterReconciler) getKubeConfig(ctx context.Context, req ctrl.Request) (*clientcmdapi.Config, error) {
@@ -265,6 +345,6 @@ func (r *ClusterReconciler) addToProject(ctx context.Context, kubeconfig *client
 // SetupWithManager sets up the controller with the Manager.
 func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&capiv1beta1.Cluster{}).
+		For(&capiv1.Cluster{}).
 		Complete(r)
 }
