@@ -65,12 +65,10 @@ test: generate fmt vet envtest ## Run tests.
 
 ##@ Build
 
-.PHONY: build
-build: generate fmt vet $(SRC) ## Build manager binary.
-	CGO_ENABLED=0 go build -v -ldflags '-s -w' -o bin/manager main.go
+build: fmt vet bin/manager
 
-build-quick: $(SRC)
-	CGO_ENABLED=0 go build -v -ldflags '-s -w' -o bin/manager main.go
+bin/manager: $(SRC)
+	CGO_ENABLED=0 go build -v -ldflags '-s -w' -o $@ main/main.go
 
 .PHONY: run-local
 run-local: build-quick
@@ -78,7 +76,7 @@ run-local: build-quick
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
-	go run ./main.go
+	go run ./main/main.go
 
 .PHONY: docker-build
 docker-build: test ## Build docker image with the manager.
