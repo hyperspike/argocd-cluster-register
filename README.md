@@ -2,7 +2,7 @@
 
 [![scan workflow](https://github.com/dmolik/automent/actions/workflows/scan.yaml/badge.svg)](https://github.com/dmolik/automent/actions/workflows/scan.yaml)
 [![license](https://badgen.net/github/license/dmolik/automent/)](https://github.com/dmolik/automent/blob/main/LICENSE)
-[![release](https://badgen.net/github/release/dmolik/automent/stable)](https://github.com/dmolik/automent/releases)
+[![release](https://badgen.net/github/release/dmolik/automent/stable)](https://github.com/dmolik/automent/releases/latest)
 [![Go Report Card](https://goreportcard.com/badge/github.com/dmolik/automent)](https://goreportcard.com/report/github.com/dmolik/automent)
 
 _Automent_ (*Automatic-Cement*) An ArgoCD controller to listen for Cluster-API clusters and register them with an ArgoCD project
