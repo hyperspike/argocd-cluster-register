@@ -124,7 +124,7 @@ CURL := $(shell which curl)
 GREP := $(shell which grep)
 README_TMP := readme.html
 OWNER := dmolik
-REPO := argocd-cluster-register
+REPO := automent
 
 .PHONY: purge
 purge:

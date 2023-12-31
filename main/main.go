@@ -34,8 +34,8 @@ import (
 	appsv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	capiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
-	"github.com/dmolik/argocd-cluster-register/conf"
-	"github.com/dmolik/argocd-cluster-register/controllers"
+	"github.com/dmolik/automent/conf"
+	"github.com/dmolik/automent/controllers"
 	//+kubebuilder:scaffold:imports
 )
 

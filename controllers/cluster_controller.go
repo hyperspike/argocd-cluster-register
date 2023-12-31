@@ -35,8 +35,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/dmolik/argocd-cluster-register/cni/cilium"
-	"github.com/dmolik/argocd-cluster-register/conf"
+	"github.com/dmolik/automent/cni/cilium"
+	"github.com/dmolik/automent/conf"
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 )

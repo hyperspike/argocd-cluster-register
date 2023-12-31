@@ -1,11 +1,11 @@
-# ArgoCD-Cluster-Register
+# Automent
 
-[![scan workflow](https://github.com/dmolik/argocd-cluster-register/actions/workflows/scan.yaml/badge.svg)](https://github.com/dmolik/argocd-cluster-register/actions/workflows/scan.yaml)
-[![license](https://badgen.net/github/license/dmolik/argocd-cluster-register/)](https://github.com/dmolik/argocd-cluster-register/blob/main/LICENSE)
-[![release](https://badgen.net/github/release/dmolik/argocd-cluster-register/stable)](https://github.com/dmolik/argocd-cluster-register/releases)
-[![Go Report Card](https://goreportcard.com/badge/github.com/dmolik/argocd-cluster-register)](https://goreportcard.com/report/github.com/dmolik/argocd-cluster-register)
+[![scan workflow](https://github.com/dmolik/automent/actions/workflows/scan.yaml/badge.svg)](https://github.com/dmolik/automent/actions/workflows/scan.yaml)
+[![license](https://badgen.net/github/license/dmolik/automent/)](https://github.com/dmolik/automent/blob/main/LICENSE)
+[![release](https://badgen.net/github/release/dmolik/automent/stable)](https://github.com/dmolik/automent/releases)
+[![Go Report Card](https://goreportcard.com/badge/github.com/dmolik/automent)](https://goreportcard.com/report/github.com/dmolik/automent)
 
-An ArgoCD controller to listen for Cluster-API clusters and register them with an ArgoCD project
+_Automent_ (*Automatic-Cement*) An ArgoCD controller to listen for Cluster-API clusters and register them with an ArgoCD project
 
 ## How it works
 
@@ -17,7 +17,7 @@ Thus the Cluster-Register controller never contacts CAPI or ArgoCD directly. Pro
 
 Please note; ArgoCD-Cluster-Register is still work in progress, and the deployment config is undergoing some updates.
 
-    kubectl apply -k github.com/dmolik/argocd-cluster-register/config/default
+    kubectl apply -k github.com/dmolik/automent/config/default
 
 ### Notes
 

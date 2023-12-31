@@ -31,18 +31,18 @@ spec:
         - /manager
         args:
         - --leader-elect
-        image: ghcr.io/dmolik/argocd-cluster-register:lastest
+        image: ghcr.io/dmolik/automent:lastest
         env:
         - name: ROLE_ARN
           valueFrom:
             configMapKeyRef:
-              name: argocd-cluster-register
+              name: automent
               key: roleARN
               optional: true
         - name: PROJECT
           valueFrom:
             configMapKeyRef:
-              name: argocd-cluster-register
+              name: automent
               key: project
               optional: true
         name: manager

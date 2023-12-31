@@ -1,4 +1,4 @@
-module github.com/dmolik/argocd-cluster-register
+module github.com/dmolik/automent
 
 go 1.20
 

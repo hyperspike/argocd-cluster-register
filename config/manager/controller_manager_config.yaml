@@ -13,7 +13,7 @@ leaderElection:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: argocd-cluster-register
+  name: automent
 data:
   roleARN: <AWS IAM Role>
   project: <Comma Seperated list of argo projects>
