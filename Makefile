@@ -11,6 +11,9 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
+
+VERSION ?= $(shell  if [ ! -z $$(git tag --points-at HEAD) ] ; then git tag --points-at HEAD|cat ; else  git rev-parse --short HEAD|cat; fi )
+SHA ?= $(shell git rev-parse --short HEAD)
 # Setting SHELL to bash allows bash commands to be executed by recipes.
 # This is a requirement for 'setup-envtest.sh' in the test target.
 # Options are set to exit when a recipe line exits non-zero or a piped command fails.
@@ -68,7 +71,7 @@ test: generate fmt vet envtest ## Run tests.
 build: fmt vet bin/manager
 
 bin/manager: $(SRC)
-	CGO_ENABLED=0 go build -v -ldflags '-s -w' -o $@ main/main.go
+	CGO_ENABLED=0 go build -v -ldflags "-s -w -X github.com/$(OWNER)/$(REPO).Version=$(VERSION)" -o $@ main/main.go
 
 .PHONY: run-local
 run-local: build-quick
