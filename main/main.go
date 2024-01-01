@@ -19,6 +19,7 @@ package main
 import (
 	"flag"
 	"os"
+	"time"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -36,6 +37,8 @@ import (
 
 	"github.com/dmolik/automent/conf"
 	"github.com/dmolik/automent/controllers"
+	uzap "go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -61,10 +64,6 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	opts := zap.Options{
-		Development: true,
-	}
-	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
 	c, err := conf.ParseConfig()
@@ -73,7 +72,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+	configLog := uzap.NewProductionEncoderConfig()
+	configLog.EncodeTime = func(ts time.Time, encoder zapcore.PrimitiveArrayEncoder) {
+		encoder.AppendString(ts.UTC().Format(time.RFC3339Nano))
+	}
+	logger := zap.New(zap.UseDevMode(false), zap.WriteTo(os.Stdout), zap.Encoder(zapcore.NewJSONEncoder(configLog)))
+	ctrl.SetLogger(logger)
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,

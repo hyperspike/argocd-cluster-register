@@ -1,4 +1,4 @@
 package automent
 
 var Version string
-var Build string
+var Commit string

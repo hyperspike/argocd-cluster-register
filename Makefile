@@ -71,7 +71,9 @@ test: generate fmt vet envtest ## Run tests.
 build: fmt vet bin/manager
 
 bin/manager: $(SRC)
-	CGO_ENABLED=0 go build -v -ldflags "-s -w -X github.com/$(OWNER)/$(REPO).Version=$(VERSION)" -o $@ main/main.go
+	CGO_ENABLED=0 go build -v \
+		-ldflags "-s -w -X github.com/$(OWNER)/$(REPO).Version=$(VERSION) -X github.com/$(OWNER)/$(REPO).Commit=$(SHA)" \
+		-o $@ main/main.go
 
 .PHONY: run-local
 run-local: build-quick
