@@ -6,7 +6,7 @@ require (
 	github.com/argoproj/argo-cd/v2 v2.9.3
 	github.com/aws/aws-sdk-go-v2 v1.24.1
 	github.com/aws/aws-sdk-go-v2/config v1.26.3
-	github.com/aws/aws-sdk-go-v2/service/ec2 v1.143.0
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.144.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.30.0
