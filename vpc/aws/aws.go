@@ -14,7 +14,7 @@ type VPC struct {
 	ctx    context.Context
 }
 
-func Create(ctx context.Context) (*VPC, error) {
+func Create(ctx context.Context, cidr string) (*VPC, error) {
 	vpc := &VPC{}
 
 	defaultConfig, err := config.LoadDefaultConfig(ctx)
@@ -45,8 +45,11 @@ func (v *VPC) createVPC(cidr string) (string, error) {
 	return *out.Vpc.VpcId, nil
 }
 
-func (v *VPC) destroyVPC() {
-
+func (v *VPC) destroyVPC(id string) error {
+	_, err := v.ec2.DeleteVpc(v.ctx, &ec2.DeleteVpcInput{
+		VpcId: aws.String(id),
+	})
+	return err
 }
 
 func (v *VPC) createNat() {
@@ -57,12 +60,34 @@ func (v *VPC) destroyNat() {
 
 }
 
-func (v *VPC) createSubnet() {
-
+func (v *VPC) createSubnet(cidr string, vpcID string) error {
+	out, err := v.ec2.CreateSubnet(v.ctx, &ec2.CreateSubnetInput{
+		CidrBlock:        aws.String(cidr),
+		VpcId:            aws.String(vpcID),
+		AvailabilityZone: aws.String("us-east-1a"),
+	})
+	if err != nil {
+		return err
+	}
+	_, err = v.ec2.CreateTags(v.ctx, &ec2.CreateTagsInput{
+		Resources: []string{*out.Subnet.SubnetId},
+		Tags: []types.Tag{
+			{
+				Key:   aws.String("Name"),
+				Value: aws.String("test"),
+			},
+		},
+	})
+	return err
 }
 
-func (v *VPC) destroySubnet() {
-
+func (v *VPC) destroySubnet(id string) error {
+	if _, err := v.ec2.DeleteSubnet(v.ctx, &ec2.DeleteSubnetInput{
+		SubnetId: aws.String(id),
+	}); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (v *VPC) createVPCPeer() {

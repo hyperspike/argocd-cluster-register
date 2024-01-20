@@ -36,6 +36,14 @@ all: build
 # More info on the awk command:
 # http://linuxcommand.org/lc3_adv_awk.php
 
+
+
+CURL := $(shell which curl)
+GREP := $(shell which grep)
+README_TMP := readme.html
+OWNER := dmolik
+REPO := automent
+PKG := github.com/$(OWNER)/$(REPO)
 SRC := $(shell find . -name \*.go -not \( -name \*_test.go -prune \))
 
 .PHONY: help
@@ -72,7 +80,9 @@ build: fmt vet bin/manager
 
 bin/manager: $(SRC)
 	CGO_ENABLED=0 go build -v \
-		-ldflags "-s -w -X github.com/$(OWNER)/$(REPO).Version=$(VERSION) -X github.com/$(OWNER)/$(REPO).Commit=$(SHA)" \
+		-trimpath -asmflags all=-trimpath=/src -installsuffix cgo \
+		-ldflags "-s -w -X $(PKG).Version=$(VERSION) -X $(PKG).Commit=$(SHA)" \
+		-gcflags "all=-N -l" \
 		-o $@ main/main.go
 
 .PHONY: run-local
@@ -124,12 +134,6 @@ KUSTOMIZE = $(shell pwd)/bin/kustomize
 kustomize: ## Download kustomize locally if necessary.
 	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v3@v3.8.7)
 
-
-CURL := $(shell which curl)
-GREP := $(shell which grep)
-README_TMP := readme.html
-OWNER := dmolik
-REPO := automent
 
 .PHONY: purge
 purge:
