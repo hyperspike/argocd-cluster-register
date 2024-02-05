@@ -3,7 +3,7 @@ module github.com/dmolik/automent
 go 1.20
 
 require (
-	github.com/argoproj/argo-cd/v2 v2.9.5
+	github.com/argoproj/argo-cd/v2 v2.9.6
 	github.com/aws/aws-sdk-go-v2 v1.24.1
 	github.com/aws/aws-sdk-go-v2/config v1.26.6
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.146.0
