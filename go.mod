@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/argoproj/argo-cd/v2 v2.9.5
-	github.com/aws/aws-sdk-go-v2 v1.24.1
+	github.com/aws/aws-sdk-go-v2 v1.25.0
 	github.com/aws/aws-sdk-go-v2/config v1.26.6
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.146.0
 	github.com/kelseyhightower/envconfig v1.4.0
@@ -40,7 +40,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.18.7 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.21.7 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.26.7 // indirect
-	github.com/aws/smithy-go v1.19.0 // indirect
+	github.com/aws/smithy-go v1.20.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
