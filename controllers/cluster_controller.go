@@ -1,5 +1,5 @@
 /*
-Copyright 2023 Dan Molik.
+Copyright 2024 Hyperspike.io
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -35,8 +35,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/dmolik/automent/cni/cilium"
-	"github.com/dmolik/automent/conf"
+	"github.com/hyperspike/argocd-cluster-register/cni/cilium"
+	"github.com/hyperspike/argocd-cluster-register/conf"
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 )

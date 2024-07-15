@@ -1,5 +1,5 @@
 /*
-Copyright 2023 Dan Molik.
+Copyright 2024 Hyperspike.io
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -38,8 +38,8 @@ import (
 	appsv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	capiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
-	"github.com/dmolik/automent/conf"
-	"github.com/dmolik/automent/controllers"
+	"github.com/hyperspike/argocd-cluster-register/conf"
+	"github.com/hyperspike/argocd-cluster-register/controllers"
 	uzap "go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	//+kubebuilder:scaffold:imports

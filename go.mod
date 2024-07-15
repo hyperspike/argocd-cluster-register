@@ -1,4 +1,4 @@
-module github.com/dmolik/automent
+module github.com/hyperspike/argocd-cluster-register
 
 go 1.21
 
