@@ -3,7 +3,7 @@ module github.com/hyperspike/argocd-cluster-register
 go 1.21
 
 require (
-	github.com/argoproj/argo-cd/v2 v2.11.6
+	github.com/argoproj/argo-cd/v2 v2.11.7
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.33.1
