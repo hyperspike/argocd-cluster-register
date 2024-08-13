@@ -1,7 +1,6 @@
 module github.com/hyperspike/argocd-cluster-register
 
 go 1.21.0
-
 toolchain go1.22.6
 
 require (
@@ -11,11 +10,11 @@ require (
 	github.com/onsi/gomega v1.34.1
 	github.com/stretchr/testify v1.9.0
 	go.uber.org/zap v1.27.0
-	k8s.io/api v0.29.7
-	k8s.io/apimachinery v0.29.7
-	k8s.io/client-go v0.29.7
+	k8s.io/api v0.30.1
+	k8s.io/apimachinery v0.30.1
+	k8s.io/client-go v0.30.1
 	sigs.k8s.io/cluster-api v1.7.4
-	sigs.k8s.io/controller-runtime v0.17.3
+	sigs.k8s.io/controller-runtime v0.18.5
 )
 
 require (
@@ -142,14 +141,14 @@ require (
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiextensions-apiserver v0.29.7 // indirect
-	k8s.io/apiserver v0.29.7 // indirect
+	k8s.io/apiextensions-apiserver v0.30.1 // indirect
+	k8s.io/apiserver v0.30.1 // indirect
 	k8s.io/cli-runtime v0.29.7 // indirect
-	k8s.io/component-base v0.29.7 // indirect
+	k8s.io/component-base v0.30.1 // indirect
 	k8s.io/component-helpers v0.29.7 // indirect
-	k8s.io/klog/v2 v2.110.1 // indirect
+	k8s.io/klog/v2 v2.120.1 // indirect
 	k8s.io/kube-aggregator v0.29.7 // indirect
-	k8s.io/kube-openapi v0.0.0-20231010175941-2dd684a91f00 // indirect
+	k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340 // indirect
 	k8s.io/kubectl v0.29.7 // indirect
 	k8s.io/kubernetes v1.29.7 // indirect
 	k8s.io/utils v0.0.0-20231127182322-b307cd553661 // indirect
