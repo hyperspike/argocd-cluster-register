@@ -37,12 +37,21 @@ all: build
 # http://linuxcommand.org/lc3_adv_awk.php
 
 
+V ?= 0
+ifeq ($(V), 1)
+	Q =
+	VV = -v
+else
+	Q = @
+	VV =
+endif
+
 
 CURL := $(shell which curl)
 GREP := $(shell which grep)
 README_TMP := readme.html
-OWNER := dmolik
-REPO := automent
+OWNER := hyperspike
+REPO := argocd-cluster-register
 PKG := github.com/$(OWNER)/$(REPO)
 SRC := $(shell find . -name \*.go -not \( -name \*_test.go -prune \))
 
@@ -62,11 +71,11 @@ generate: #  controller-gen ## Generate code containing DeepCopy, DeepCopyInto, 
 
 .PHONY: fmt
 fmt: ## Run go fmt against code.
-	go fmt ./...
+	$Qgo fmt ./...
 
 .PHONY: vet
 vet: ## Run go vet against code.
-	go vet ./...
+	$Qgo vet ./...
 
 check: test
 .PHONY: test
@@ -79,7 +88,7 @@ test: generate fmt vet envtest ## Run tests.
 build: fmt vet bin/manager
 
 bin/manager: $(SRC)
-	CGO_ENABLED=0 go build -v \
+	$QCGO_ENABLED=0 go build $(VV) \
 		-trimpath -asmflags all=-trimpath=/src -installsuffix cgo \
 		-ldflags "-s -w -X $(PKG).Version=$(VERSION) -X $(PKG).Commit=$(SHA)" \
 		-gcflags "all=-N -l" \
@@ -94,11 +103,11 @@ run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./main/main.go
 
 .PHONY: docker-build
-docker-build: test ## Build docker image with the manager.
+docker-build: build ## Build docker image with the manager.
 	docker build -t ${IMG} .
 
 .PHONY: docker-push
-docker-push: ## Push docker image with the manager.
+docker-push: docker-build  ## Push docker image with the manager.
 	docker push ${IMG}
 
 ##@ Deployment
