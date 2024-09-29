@@ -17,7 +17,13 @@ Thus the Cluster-Register controller never contacts CAPI or ArgoCD directly. Pro
 
 Please note; ArgoCD-Cluster-Register is still work in progress, and the deployment config is undergoing some updates.
 
-    kubectl apply -k github.com/hyperspike/argocd-cluster-register/config/default
+    LATEST=$(curl -s https://api.github.com/repos/hyperspike/argocd-cluster-register/releases/latest | jq -r .tag_name)
+    curl -sL https://github.com/hyperspike/argocd-cluster-register/releases/download/$LATEST/install.yaml | kubectl create -f -
+
+Verifying the container image
+
+    LATEST=$(curl -s https://api.github.com/repos/hyperspike/argocd-cluster-register/releases/latest | jq -r .tag_name)
+    cosign verify ghcr.io/hyperspike/argocd-cluster-register:$LATEST  --certificate-oidc-issuer https://token.actions.githubusercontent.com --certificate-identity https://github.com/hyperspike/argocd-cluster-register/.github/workflows/image.yaml@refs/tags/$LATEST
 
 ### Notes
 
