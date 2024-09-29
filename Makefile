@@ -46,6 +46,10 @@ else
 	VV =
 endif
 
+## Location to install dependencies to
+LOCALBIN ?= $(shell pwd)/bin
+$(LOCALBIN):
+	mkdir -p $(LOCALBIN)
 
 CURL := $(shell which curl)
 GREP := $(shell which grep)
@@ -85,9 +89,9 @@ test: generate fmt vet envtest ## Run tests.
 
 ##@ Build
 
-build: fmt vet bin/manager
+build: fmt vet manager
 
-bin/manager: $(SRC)
+manager: $(SRC)
 	$QCGO_ENABLED=0 go build $(VV) \
 		-trimpath -asmflags all=-trimpath=/src -installsuffix cgo \
 		-ldflags "-s -w -X $(PKG).Version=$(VERSION) -X $(PKG).Commit=$(SHA)" \
@@ -96,7 +100,7 @@ bin/manager: $(SRC)
 
 .PHONY: run-local
 run-local: build-quick
-	./bin/manager -kubeconfig ~/.kube/config
+	manager -kubeconfig ~/.kube/config
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
@@ -109,6 +113,12 @@ docker-build: build ## Build docker image with the manager.
 .PHONY: docker-push
 docker-push: docker-build  ## Push docker image with the manager.
 	docker push ${IMG}
+
+.PHONY: build-installer
+build-installer: manifests generate kustomize ## Generate a consolidated YAML with CRDs and deployment.
+	mkdir -p dist
+	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+	$(KUSTOMIZE) build config/default > dist/install.yaml
 
 ##@ Deployment
 
@@ -138,10 +148,12 @@ CONTROLLER_GEN = $(shell which controller-gen)
 controller-gen: ## Download controller-gen locally if necessary.
 	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.9.2)
 
-KUSTOMIZE = $(shell pwd)/bin/kustomize
+KUSTOMIZE ?= $(LOCALBIN)/kustomize-$(KUSTOMIZE_VERSION)
+KUSTOMIZE_VERSION ?= v5.4.1
 .PHONY: kustomize
-kustomize: ## Download kustomize locally if necessary.
-	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v3@v3.8.7)
+kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
+$(KUSTOMIZE): $(LOCALBIN)
+	$(call go-install-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v5,$(KUSTOMIZE_VERSION))
 
 
 .PHONY: purge
@@ -165,5 +177,19 @@ go mod init tmp ;\
 echo "Downloading $(2)" ;\
 GOBIN=$(PROJECT_DIR)/bin go get $(2) ;\
 rm -rf $$TMP_DIR ;\
+}
+endef
+
+# go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
+# $1 - target path with name of binary (ideally with version)
+# $2 - package url which can be installed
+# $3 - specific version of package
+define go-install-tool
+@[ -f $(1) ] || { \
+set -e; \
+package=$(2)@$(3) ;\
+echo "Downloading $${package}" ;\
+GOBIN=$(LOCALBIN) go install $${package} ;\
+mv "$$(echo "$(1)" | sed "s/-$(3)$$//")" $(1) ;\
 }
 endef
