@@ -5,7 +5,7 @@ go 1.22.0
 toolchain go1.23.0
 
 require (
-	github.com/argoproj/argo-cd/v2 v2.14.1
+	github.com/argoproj/argo-cd/v2 v2.14.2
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.36.2
