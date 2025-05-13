@@ -1,8 +1,9 @@
 package conf
 
 import (
-	"github.com/kelseyhightower/envconfig"
 	"strings"
+
+	"github.com/kelseyhightower/envconfig"
 )
 
 type Config struct {

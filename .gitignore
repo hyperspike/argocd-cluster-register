@@ -23,3 +23,5 @@ readme.html
 *.swp
 *.swo
 *~
+manager
+dist/
