@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	argoappv1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
+	argoappv1 "github.com/argoproj/argo-cd/v3/pkg/apis/application/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,8 +37,8 @@ import (
 
 	"github.com/hyperspike/argocd-cluster-register/cni/cilium"
 	"github.com/hyperspike/argocd-cluster-register/conf"
+	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta1"
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 )
 
 const (
