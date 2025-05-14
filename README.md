@@ -1,7 +1,7 @@
 # ArgoCD-Cluster-Register
 
 [![scan workflow](https://github.com/hyperspike/argocd-cluster-register/actions/workflows/scan.yaml/badge.svg)](https://github.com/hyperspike/argocd-cluster-register/actions/workflows/scan.yaml)
-[![license](https://badgen.net/github/license/hyperspike/argocd-cluster-register/)](https://github.com/hyperspike/argocd-cluster-register/blob/main/LICENSE)
+[![license](https://badgen.net/github/license/hyperspike/argocd-cluster-register)](https://github.com/hyperspike/argocd-cluster-register/blob/main/LICENSE)
 [![release](https://badgen.net/github/release/hyperspike/argocd-cluster-register/stable)](https://github.com/hyperspike/argocd-cluster-register/releases/latest)
 [![Go Report Card](https://goreportcard.com/badge/github.com/hyperspike/argocd-cluster-register)](https://goreportcard.com/report/github.com/hyperspike/argocd-cluster-register)
 
