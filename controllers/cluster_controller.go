@@ -37,8 +37,8 @@ import (
 
 	"github.com/hyperspike/argocd-cluster-register/cni/cilium"
 	"github.com/hyperspike/argocd-cluster-register/conf"
+	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta1"
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 )
 
 const (
