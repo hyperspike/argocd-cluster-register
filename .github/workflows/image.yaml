@@ -60,7 +60,7 @@ jobs:
         labels: ${{ steps.meta.outputs.labels }}
 
     - name: Set up Cosign
-      uses: sigstore/cosign-installer@c56c2d3e59e4281cc41dea2217323ba5694b171e # v3.8.0
+      uses: sigstore/cosign-installer@3454372f43399081ed03b604cb2d021dabca52bb # v3.8.2
 
     - name: Sign image with GitHub OIDC Token
       run: |
