@@ -1,9 +1,10 @@
 package conf
 
 import (
-	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestConfigParse(t *testing.T) {
@@ -14,7 +15,7 @@ func TestConfigParse(t *testing.T) {
 		"PROJECT": "test1,test2",
 	}
 	for k, v := range env {
-		os.Setenv(k, v)
+		_ = os.Setenv(k, v)
 	}
 
 	c, err := ParseConfig()

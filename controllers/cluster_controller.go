@@ -41,6 +41,10 @@ import (
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 )
 
+const (
+	Deleting = "Deleting"
+)
+
 // ClusterReconciler reconciles a Cluster object
 type ClusterReconciler struct {
 	client.Client
@@ -67,8 +71,9 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	log.V(0).Info(fmt.Sprintf("found cluster, phase=%s, control_plane_ready=%t", cluster.Status.Phase, cluster.Status.ControlPlaneReady)) // , cluster.Status.Conditions))
-	if cluster.Status.Phase == "Deleting" {
+	log.V(0).Info(fmt.Sprintf("found cluster, phase=%s, control_plane_ready=%t",
+		cluster.Status.Phase, cluster.Status.ControlPlaneReady)) // , cluster.Status.Conditions))
+	if cluster.Status.Phase == Deleting {
 		// delete the cluster secret from argocd
 		kcfg, err := r.getKubeConfig(ctx, req)
 		if err != nil {
@@ -77,7 +82,7 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			}
 			return ctrl.Result{}, err
 		}
-		if _, err = r.deleteSecret(ctx, kcfg); err != nil {
+		if err = r.deleteSecret(ctx, kcfg); err != nil {
 			return ctrl.Result{}, err
 		}
 		if err = r.removeFromProject(ctx, kcfg); err != nil {
@@ -85,21 +90,21 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 
 	}
-	if cluster.Status.Phase != "Deleting" {
+	if cluster.Status.Phase != Deleting {
 		// get the secret and push it into argocd
 		kcfg, err := r.getKubeConfig(ctx, req)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-		if _, err = r.ensureSecret(ctx, kcfg, cluster); err != nil {
+		if err = r.ensureSecret(ctx, kcfg, cluster); err != nil {
 			return ctrl.Result{}, err
 		}
 		if err = r.addToProject(ctx, kcfg); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
-	if cluster.Status.Phase != "Deleting" && cluster.Status.ControlPlaneReady {
-		if _, err := r.ensureCNI(ctx, req, cluster); err != nil {
+	if cluster.Status.Phase != Deleting && cluster.Status.ControlPlaneReady {
+		if err := r.ensureCNI(ctx, req, cluster); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -111,7 +116,8 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return ctrl.Result{RequeueAfter: oneMinute}, nil
 }
 
-func (r *ClusterReconciler) ensureCNI(ctx context.Context, req ctrl.Request, cluster capiv1.Cluster) (ctrl.Result, error) {
+func (r *ClusterReconciler) ensureCNI(
+	ctx context.Context, req ctrl.Request, cluster capiv1.Cluster) error {
 
 	resourceSet := &addonsv1.ClusterResourceSet{
 		TypeMeta: metav1.TypeMeta{
@@ -148,14 +154,14 @@ func (r *ClusterReconciler) ensureCNI(ctx context.Context, req ctrl.Request, clu
 	if err := r.Create(ctx, resourceSet); err != nil {
 		if errors.IsAlreadyExists(err) {
 			err = r.Update(ctx, resourceSet)
-			return ctrl.Result{}, err
+			return err
 		}
-		return ctrl.Result{}, err
+		return err
 	}
 
 	cni, err := templateClusterCNI(cluster)
 	if err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
 
 	cm := &corev1.ConfigMap{
@@ -185,12 +191,12 @@ func (r *ClusterReconciler) ensureCNI(ctx context.Context, req ctrl.Request, clu
 	if err := r.Create(ctx, cm); err != nil {
 		if errors.IsAlreadyExists(err) {
 			err = r.Update(ctx, cm)
-			return ctrl.Result{}, err
+			return err
 		}
-		return ctrl.Result{}, err
+		return err
 	}
 
-	return ctrl.Result{}, nil
+	return nil
 }
 
 func templateClusterCNI(cluster capiv1.Cluster) (string, error) {
@@ -212,7 +218,8 @@ func (r *ClusterReconciler) getKubeConfig(ctx context.Context, req ctrl.Request)
 	return kubeconfig, nil
 }
 
-func (r *ClusterReconciler) deleteSecret(ctx context.Context, kubeconfig *clientcmdapi.Config) (ctrl.Result, error) {
+func (r *ClusterReconciler) deleteSecret(
+	ctx context.Context, kubeconfig *clientcmdapi.Config) error {
 	log := log.FromContext(ctx)
 	clusterName := kubeconfig.Contexts[kubeconfig.CurrentContext].Cluster
 	log.V(0).Info("deleting " + clusterName)
@@ -229,14 +236,15 @@ func (r *ClusterReconciler) deleteSecret(ctx context.Context, kubeconfig *client
 	err := r.Delete(ctx, &secret)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			return ctrl.Result{}, nil
+			return nil
 		}
-		return ctrl.Result{}, err
+		return err
 	}
-	return ctrl.Result{}, nil
+	return nil
 }
 
-func (r *ClusterReconciler) ensureSecret(ctx context.Context, kubeconfig *clientcmdapi.Config, cluster capiv1.Cluster) (ctrl.Result, error) {
+func (r *ClusterReconciler) ensureSecret(
+	ctx context.Context, kubeconfig *clientcmdapi.Config, cluster capiv1.Cluster) error {
 	clusterName := kubeconfig.Contexts[kubeconfig.CurrentContext].Cluster
 	authName := kubeconfig.Contexts[kubeconfig.CurrentContext].AuthInfo
 	server := kubeconfig.Clusters[clusterName].Server
@@ -255,7 +263,7 @@ func (r *ClusterReconciler) ensureSecret(ctx context.Context, kubeconfig *client
 	}
 	configByte, err := json.Marshal(&config)
 	if err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
 
 	secret := corev1.Secret{
@@ -291,11 +299,11 @@ func (r *ClusterReconciler) ensureSecret(ctx context.Context, kubeconfig *client
 	if err != nil {
 		if errors.IsAlreadyExists(err) {
 			err = r.Update(ctx, &secret)
-			return ctrl.Result{}, err
+			return err
 		}
-		return ctrl.Result{}, err
+		return err
 	}
-	return ctrl.Result{}, nil
+	return nil
 }
 
 func (r *ClusterReconciler) removeFromProject(ctx context.Context, kubeconfig *clientcmdapi.Config) error {
