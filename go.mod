@@ -1,11 +1,9 @@
 module github.com/hyperspike/argocd-cluster-register
 
-go 1.24.1
-
-toolchain go1.24.2
+go 1.24.4
 
 require (
-	github.com/argoproj/argo-cd/v3 v3.0.5
+	github.com/argoproj/argo-cd/v3 v3.0.6
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.37.0
