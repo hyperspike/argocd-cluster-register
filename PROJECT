@@ -1,7 +1,7 @@
 domain: argoproj.io
 layout:
 - go.kubebuilder.io/v3
-projectName: automent
-repo: github.com/dmolik/automent
+projectName: argocd-cluster-register
+repo: github.com/hyperspike/argocd-cluster-register
 resources:
 version: "3"
