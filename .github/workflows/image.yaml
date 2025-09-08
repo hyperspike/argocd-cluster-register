@@ -41,9 +41,9 @@ jobs:
         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ env.RELEASE_VERSION }}
 
     - name: Setup Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
-        go-version: 1.23
+        go-version: 1.24
     - name: Display Go version
       run: go version
     - name: Build it
