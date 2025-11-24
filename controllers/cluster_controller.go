@@ -37,8 +37,8 @@ import (
 
 	"github.com/hyperspike/argocd-cluster-register/cni/cilium"
 	"github.com/hyperspike/argocd-cluster-register/conf"
-	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta1"
-	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
+	capiv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 const (
@@ -71,8 +71,8 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	log.V(0).Info(fmt.Sprintf("found cluster, phase=%s, control_plane_ready=%t",
-		cluster.Status.Phase, cluster.Status.ControlPlaneReady)) // , cluster.Status.Conditions))
+	log.V(0).Info(fmt.Sprintf("found cluster, phase=%s, control_plane_ready=%b",
+		cluster.Status.Phase, cluster.Status.Initialization.ControlPlaneInitialized)) // , cluster.Status.Conditions))
 	if cluster.Status.Phase == Deleting {
 		// delete the cluster secret from argocd
 		kcfg, err := r.getKubeConfig(ctx, req)
@@ -103,7 +103,7 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			return ctrl.Result{}, err
 		}
 	}
-	if cluster.Status.Phase != Deleting && cluster.Status.ControlPlaneReady {
+	if cluster.Status.Phase != Deleting && *cluster.Status.Initialization.ControlPlaneInitialized {
 		if err := r.ensureCNI(ctx, req, cluster); err != nil {
 			return ctrl.Result{}, err
 		}
