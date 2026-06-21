@@ -3,7 +3,7 @@ name: Go Build
 on:
   pull_request:
 
-permissions:
+permissions: {}
 
 jobs:
   build:
