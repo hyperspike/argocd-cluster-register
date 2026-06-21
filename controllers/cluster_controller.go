@@ -43,6 +43,7 @@ import (
 
 const (
 	Deleting = "Deleting"
+	ARGOCD   = "argocd"
 )
 
 // ClusterReconciler reconciles a Cluster object
@@ -230,7 +231,7 @@ func (r *ClusterReconciler) deleteSecret(
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      clusterName + "-cluster-secret",
-			Namespace: "argocd",
+			Namespace: ARGOCD,
 		},
 	}
 	err := r.Delete(ctx, &secret)
@@ -273,9 +274,9 @@ func (r *ClusterReconciler) ensureSecret(
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      clusterName + "-cluster-secret",
-			Namespace: "argocd",
+			Namespace: ARGOCD,
 			Labels: map[string]string{
-				"app.kubernetes.io/part-of":      "argocd",
+				"app.kubernetes.io/part-of":      ARGOCD,
 				"argocd.argoproj.io/secret-type": "cluster",
 				"cluster.x-k8s.io/cluster-name":  clusterName,
 			},
@@ -314,7 +315,7 @@ func (r *ClusterReconciler) removeFromProject(ctx context.Context, kubeconfig *c
 		project := argoappv1.AppProject{}
 		projectReq := types.NamespacedName{
 			Name:      proj,
-			Namespace: "argocd",
+			Namespace: ARGOCD,
 		}
 		err := r.Get(ctx, projectReq, &project)
 		if err != nil {
@@ -345,7 +346,7 @@ func (r *ClusterReconciler) addToProject(ctx context.Context, kubeconfig *client
 		project := argoappv1.AppProject{}
 		projectReq := types.NamespacedName{
 			Name:      proj,
-			Namespace: "argocd",
+			Namespace: ARGOCD,
 		}
 		err := r.Get(ctx, projectReq, &project)
 		if err != nil {

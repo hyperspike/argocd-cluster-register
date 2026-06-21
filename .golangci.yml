@@ -2,6 +2,9 @@ version: "2"
 run:
   allow-parallel-runners: true
 linters:
+  settings:
+    goconst:
+      min-occurrences: 5
   default: none
   enable:
     - copyloopvar

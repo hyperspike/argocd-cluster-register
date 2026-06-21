@@ -147,11 +147,11 @@ undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/confi
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen-$(CONTROLLER_TOOLS_VERSION)
 KUSTOMIZE ?= $(LOCALBIN)/kustomize-$(KUSTOMIZE_VERSION)
 KUSTOMIZE_VERSION ?= v5.4.1
-CONTROLLER_TOOLS_VERSION ?= v0.16.3
+CONTROLLER_TOOLS_VERSION ?= v0.21.0
 GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint-$(GOLANGCI_LINT_VERSION)
-GOLANGCI_LINT_VERSION ?= v2.6.2
+GOLANGCI_LINT_VERSION ?= v2.12.2
 GOSEC ?= $(LOCALBIN)/gosec-$(GOSEC_VERSION)
-GOSEC_VERSION ?= v2.22.10
+GOSEC_VERSION ?= v2.27.1
 
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
