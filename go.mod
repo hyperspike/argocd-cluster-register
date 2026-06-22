@@ -6,7 +6,7 @@ require (
 	github.com/argoproj/argo-cd/v3 v3.3.10
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.39.1
+	github.com/onsi/gomega v1.42.0
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/zap v1.28.0
 	k8s.io/api v0.35.0
